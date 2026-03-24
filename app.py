@@ -40,7 +40,6 @@ def segmenter():
 
 @app.route('/process/<algo>')
 def process_image(algo):
-    """Génère l'image segmentée à la volée"""
     filename = request.args.get('image_path')
     k_clusters = int(request.args.get('k', 5))
     path = os.path.join(IMAGE_FOLDER, filename)
@@ -48,51 +47,55 @@ def process_image(algo):
     img = cv2.imread(path)
     if img is None: return "Erreur", 400
     
-    # 1. Prétraitement : CLAHE (Correction luminosité pour Adam)
+    # --- 1. CORRECTION LUMINOSITÉ (VERROU 1) ---
+    # Passage en mode LAB pour ne toucher qu'à la luminance (L)
     lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
     l, a, b = cv2.split(lab)
-    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
-    cl = clahe.apply(l)
-    img_alt = cv2.merge((cl,a,b))
-    img_rgb = cv2.cvtColor(img_alt, cv2.COLOR_LAB2RGB)
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+    l = clahe.apply(l)
+    img_corrected = cv2.merge((l,a,b))
+    img_rgb = cv2.cvtColor(img_corrected, cv2.COLOR_LAB2RGB)
     
     h, w, _ = img_rgb.shape
 
+    # --- 2. GESTION DU VOLUME (VERROU 2) ---
+    # On travaille sur une version miniature pour la rapidité
+    max_dim = 150 
+    scale = max_dim / max(h, w)
+    img_small = cv2.resize(img_rgb, (int(w*scale), int(h*scale)))
+    
+    # --- 3. SEGMENTATION ---
     if algo == 'kmeans':
-        # Clustering Classique K-Means
-        pixel_values = img_rgb.reshape((-1, 3))
+        pixel_values = img_small.reshape((-1, 3))
         pixel_values = np.float32(pixel_values)
-        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
-        _, labels, centers = cv2.kmeans(pixel_values, k_clusters, None, criteria, 10, cv2.KMEANS_RANDOM_CENTERS)
-        centers = np.uint8(centers)
-        res = centers[labels.flatten()]
-        image_finale = res.reshape(img_rgb.shape)
-
-    elif algo == 'dbscan':
-        # Clustering DBSCAN (votre algo original optimisé)
-        max_dim = 100
-        scale = max_dim / max(h, w)
-        img_small = cv2.resize(img_rgb, (int(w*scale), int(h*scale)))
+        _, labels_small, centers = cv2.kmeans(pixel_values, k_clusters, None, 
+                                            (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0), 
+                                            10, cv2.KMEANS_RANDOM_CENTERS)
+        labels_small = labels_small.flatten()
+        colors = np.uint8(centers)
+        
+    else: # DBSCAN
         sh, sw, _ = img_small.shape
         s_yy, s_xx = np.mgrid[0:sh, 0:sw]
         data_small = np.column_stack((img_small.reshape(-1, 3), s_xx.ravel(), s_yy.ravel()))
-        
-        db = DBSCAN(eps=(50/k_clusters), min_samples=3).fit(data_small)
+        db = DBSCAN(eps=(40/k_clusters), min_samples=5).fit(data_small)
         labels_small = db.labels_
-        
-        # Coloration par moyenne
+        # Moyenne des couleurs par cluster
         n_clusters = len(set(labels_small)) - (1 if -1 in labels_small else 0)
         colors = np.array([np.mean(img_small.reshape(-1,3)[labels_small==i], axis=0) if i!=-1 else [128,128,128] for i in range(-1, n_clusters)], dtype=np.uint8)
-        
-        # Upscaling via KNN
-        knn = KNeighborsClassifier(n_neighbors=1).fit(data_small, labels_small)
-        f_yy, f_xx = np.mgrid[0:h, 0:w]
-        data_full = np.column_stack((img_rgb.reshape(-1, 3), f_xx.ravel()*scale, f_yy.ravel()*scale))
-        labels_full = knn.predict(data_full)
-        image_finale = colors[labels_full + 1].reshape(h, w, 3)
 
-    else: # Placeholder pour Auto-encodeur (CNN)
-        image_finale = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) # En attendant le modèle
+    # --- 4. REDIMENSIONNEMENT INTELLIGENT (KNN) ---
+    knn = KNeighborsClassifier(n_neighbors=1).fit(img_small.reshape(-1, 3), labels_small)
+    labels_full = knn.predict(img_rgb.reshape(-1, 3))
+    image_segmentee = colors[labels_full if algo == 'kmeans' else labels_full + 1].reshape(h, w, 3)
+
+    # --- 5. CORRECTION MORPHOMATHÉMATIQUE (VERROU 3) ---
+    # Nettoyage des petites impuretés sur le masque final
+    kernel = np.ones((5,5), np.uint8)
+    # Ouverture pour enlever le "poivre" (petits points isolés)
+    image_finale = cv2.morphologyEx(image_segmentee, cv2.MORPH_OPEN, kernel)
+    # Fermeture pour lisser les formes des bateaux
+    image_finale = cv2.morphologyEx(image_finale, cv2.MORPH_CLOSE, kernel)
 
     _, buffer = cv2.imencode('.jpg', cv2.cvtColor(image_finale, cv2.COLOR_RGB2BGR))
     return send_file(io.BytesIO(buffer), mimetype='image/jpeg')
