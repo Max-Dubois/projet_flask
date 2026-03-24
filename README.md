@@ -1,4 +1,4 @@
-# 🌊 Analyse d'Imagerie Maritime : Segmentation & Classification
+# 🌊 Analyse de traitement d'image Maritime : Segmentation & Classification
 > **Projet de Vision par Ordinateur : Détection de navires et d'objets flottants (Paddles, Kayaks, Voiliers)**
 
 ---
