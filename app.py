@@ -1,14 +1,15 @@
-from tkinter import filedialog
 from flask import Flask, render_template, request, send_from_directory, send_file
 import os
-import tkinter as tk
 import cv2
 import numpy as np
 import io
-from sklearn.cluster import KMeans, AgglomerativeClustering, DBSCAN
+from sklearn.cluster import DBSCAN
 from sklearn.neighbors import KNeighborsClassifier
 
 app = Flask(__name__)
+
+# 📁 Dossier fixe des images
+IMAGE_FOLDER = os.path.join('static', 'images')
 
 @app.route('/')
 def home():
@@ -17,28 +18,19 @@ def home():
 @app.route('/galerie', methods=['GET', 'POST'])
 def galerie():
     images = []
-    folder_path = ""
+    folder_path = IMAGE_FOLDER  # fixé directement
     
-    if request.method == 'POST':
-        root = tk.Tk()
-        root.withdraw()
-        root.attributes('-topmost', True)
-        folder_path = filedialog.askdirectory()
-        root.destroy()
+    if os.path.exists(folder_path):
+        valid_exts = ('.png', '.jpg', '.jpeg', '.gif', '.webp')
+        for filename in os.listdir(folder_path):
+            if filename.lower().endswith(valid_exts):
+                images.append(filename)
 
-        if folder_path:
-            valid_exts = ('.png', '.jpg', '.jpeg', '.gif', '.webp')
-            for filename in os.listdir(folder_path):
-                if filename.lower().endswith(valid_exts):
-                    images.append(filename)
-                
     return render_template('galerie.html', images=images, folder_path=folder_path)
 
-@app.route('/image/<path:full_path>')
-def serve_image(full_path):
-    directory = os.path.dirname(full_path)
-    filename = os.path.basename(full_path)
-    return send_from_directory(directory, filename)
+@app.route('/image/<filename>')
+def serve_image(filename):
+    return send_from_directory(IMAGE_FOLDER, filename)
 
 @app.route('/dbscan', methods=['POST'])
 def dbscan():
@@ -48,14 +40,17 @@ def dbscan():
 
 @app.route('/dbscan_image')
 def generate_dbscan_image():
-    image_path = request.args.get('image_path')
+    filename = request.args.get('image_path')
+    image_path = os.path.join(IMAGE_FOLDER, filename)
+
     k_clusters = int(request.args.get('k', 5))
     
     eps = 50 / k_clusters
     min_samples = 2
 
     img = cv2.imread(image_path)
-    if img is None: return "Erreur lors du chargement", 400
+    if img is None:
+        return "Erreur lors du chargement", 400
 
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     h, w, _ = img_rgb.shape
