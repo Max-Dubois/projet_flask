@@ -5,24 +5,148 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Résultat Segmentation</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        /* Bandeau de chargement */
+        #loadingBanner {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(90deg, #38bdf8 0%, #818cf8 100%);
+            padding: 1.5rem;
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: white;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+        }
+
+        #loadingBanner.fadeOut {
+            animation: slideUp 0.3s ease-out forwards;
+        }
+
+        /* Spinner */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Conteneur principal en colonne */
+        .images-container {
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+            margin-top: 2rem;
+        }
+
+        /* Image boxes */
+        .image-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .image-section img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(56, 189, 248, 0.2);
+        }
+    </style>
 </head>
 <body>
+    <div id="loadingBanner" style="text-align: center;">
+        <span class="spinner"></span>
+        <span>Analyse en cours...</span>
+    </div>
+
     <div style="text-align: center; margin-bottom: 2rem;">
         <h1>Analyse par {{ algo | upper }}</h1>
         <p style="margin: 0.5rem 0; color: var(--text-secondary);">Paramètre k = {{ k }} | Prétraitement CLAHE appliqué</p>
         <a href="/galerie">← Retour à la galerie</a>
     </div>
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 2rem;">
-        <div class="box">
+    <div class="images-container">
+        <!-- Image originale -->
+        <div class="image-section">
             <h3>Image Originale</h3>
             <img src="{{ url_for('serve_image', filename=image_path) }}" alt="Image originale">
         </div>
 
-        <div class="box">
+        <!-- Image segmentée -->
+        <div class="image-section">
             <h3>Résultat Segmenté</h3>
-            <img src="{{ url_for('process_image', algo=algo, image_path=image_path, k=k) }}" alt="Image segmentée">
+            <img id="segmentedImage" src="" alt="Image segmentée" style="display: none;">
         </div>
     </div>
+
+    <script>
+        // Afficher le bandeau au chargement de la page
+        const loadingBanner = document.getElementById('loadingBanner');
+        const segmentedImage = document.getElementById('segmentedImage');
+
+        // Montrer le bandeau immédiatement
+        loadingBanner.style.display = 'flex';
+        loadingBanner.style.alignItems = 'center';
+        loadingBanner.style.justifyContent = 'center';
+
+        // Charger l'image segmentée
+        const imageUrl = "{{ url_for('process_image', algo=algo, image_path=image_path, k=k) }}";
+        
+        segmentedImage.onload = function() {
+            // Image chargée, masquer le bandeau
+            loadingBanner.classList.add('fadeOut');
+            setTimeout(() => {
+                loadingBanner.style.display = 'none';
+                segmentedImage.style.display = 'block';
+            }, 300);
+        };
+
+        segmentedImage.onerror = function() {
+            // Erreur lors du chargement
+            loadingBanner.innerHTML = '<span style="color: #ef4444;">Erreur lors du chargement de l\'image</span>';
+            setTimeout(() => {
+                loadingBanner.classList.add('fadeOut');
+            }, 2000);
+        };
+
+        segmentedImage.src = imageUrl;
+    </script>
 </body>
 </html>

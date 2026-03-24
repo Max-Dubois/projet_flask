@@ -5,5 +5,12 @@
     "k_value": 5,
     "objects_count": 5,
     "timestamp": "2026-03-24 11:13:03"
+  },
+  {
+    "image_name": "MFDC2700.JPG",
+    "algorithm": "DBSCAN",
+    "k_value": 5,
+    "objects_count": 5,
+    "timestamp": "2026-03-24 14:30:18"
   }
 ]
