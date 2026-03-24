@@ -2,49 +2,65 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Projet Flask</title>
+    <title>Analyse d'Imagerie Maritime - Flask</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
 
     <div style="text-align: center;">
-        <h1>Projet Flask - DUBOIS Maxence | DECLOITRE Adam</h1>
+        <h1>🌊 Analyse d'Imagerie Maritime</h1>
+        <p class="subtitle">Segmentation & Classification de Navires et Objets Flottants</p>
+        <p><strong>Projet Flask - DUBOIS Maxence | DECLOITRE Adam</strong></p>
         <p class="links">
-            <a href="https://maxence-dubois.fr/">Mon Portfolio</a>
-            <a href="/galerie">Ma Galerie</a>
+            <a href="/galerie">Accéder à la Galerie</a>
         </p>
     </div>
 
-    <h2>Présentation</h2>
-    <p>Je m'appelle <strong>Maxence Dubois</strong>, j'ai 22 ans et je suis actuellement en 2ᵉ année de DEUST WMI à l’Université du Littoral Côte d’Opale à Calais.</p>
-    <p>Passionné par la fusion entre le dessin et le digital, je me spécialise dans la création graphique et le visuel.</p>
+    <section>
+        <h2>📌 Présentation du Projet</h2>
+        <p>Ce projet consiste à concevoir une chaîne complète de traitement d'images dédiée à la <strong>surveillance maritime</strong>. L'objectif est d'isoler des objets sur l'eau (Paddles, Kayaks, Voiliers), de corriger les défauts d'acquisition et de fournir des outils interactifs d'étiquetage.</p>
+        
+        <h3>🎯 Objectifs principaux</h3>
+        <ul>
+            <li><strong>Segmentation Hybride :</strong> Comparaison entre K-Means et Deep Learning (Auto-encodeurs).</li>
+            <li><strong>Correction de Verrous :</strong> Traitement de la luminosité et du bruit de surface.</li>
+            <li><strong>Outils Métier :</strong> Interfaces de visualisation et d'annotation avec persistance des données.</li>
+        </ul>
+    </section>
 
-    <h2>Compétences</h2>
-    <h3>🎨 Design & Création</h3>
-    <ul>
-        <li>Adobe Photoshop, Illustrator, Canva</li>
-    </ul>
-    <h3>💻 Développement Web</h3>
-    <ul>
-        <li>HTML / CSS, PHP, WordPress</li>
-    </ul>
+    <section>
+        <h2>👥 Répartition du Travail</h2>
 
-    <h2>🎓 Formations</h2>
-    <ul>
-        <li><strong>DEUST WMI</strong> — ULCO Calais <span class="date">(2024 - 2026)</span></li>
-        <li><strong>Licence Pro DIOC</strong> — IUT de Lens <span class="date">(2022 - 2023)</span></li>
-        <li><strong>DUT Informatique</strong> — IUT de Lens <span class="date">(2020 - 2022)</span></li>
-    </ul>
+        <div class="pole">
+            <h3>🎨 Maxence Dubois (Moi) : Interfaces & Intelligence Métier</h3>
+            <ul>
+                <li><strong>Développement UI (Streamlit) :</strong> Conception de l'interface de visualisation et documentation Markdown.</li>
+                <li><strong>Outil d'Étiquetage :</strong> Création du système interactif d'annotation des images.</li>
+                <li><strong>Système de Persistance :</strong> Logique d'enregistrement et de sauvegarde des labels.</li>
+                <li><strong>Analyse par Région :</strong> Identification et classification des catégories (Voilier, Paddle, etc.).</li>
+            </ul>
+        </div>
 
-    <h2>Expérience Professionnelle</h2>
-    <p><strong>Stage en Webdesign — Optesite</strong><br>
-    <span class="date">Décembre 2025 - Mai 2026</span></p>
-    
-    <p><strong>Stage en Communication — MDNI</strong><br>
-    <span class="date">Février 2025 - Mai 2025</span></p>
+        <div class="pole">
+            <h3>🛠️ Adam Decloitre : Algorithmes & Prétraitement</h3>
+            <ul>
+                <li><strong>Gestion des Verrous :</strong> Implémentation des filtres de luminosité (CLAHE).</li>
+                <li><strong>Moteur de Segmentation :</strong> Développement du clustering K-Means et de l'architecture Auto-encodeur.</li>
+                <li><strong>Analyse Morphologique :</strong> Nettoyage des masques (Érosion/Dilatation) pour affiner les formes.</li>
+            </ul>
+        </div>
+    </section>
 
-    <h2>Loisirs</h2>
-    <p>Jeux vidéos 🎮, Anime 💢, Catch 👊, Cinéma 🍿, Musique 🎧</p>
+    <section>
+        <h2>🛠️ Technologies utilisées</h2>
+        <p><strong>Backend :</strong> Flask / Python</p>
+        <p><strong>Vision :</strong> OpenCV, K-Means, CNN (Auto-encodeurs)</p>
+        <p><strong>Interface :</strong> Streamlit, HTML/CSS</p>
+    </section>
+
+    <footer style="margin-top: 50px; text-align: center; font-size: 0.8em; color: gray;">
+        <p>Projet réalisé dans le cadre du DEUST WMI — ULCO Calais</p>
+    </footer>
 
 </body>
 </html>
