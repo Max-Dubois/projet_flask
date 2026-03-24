@@ -96,10 +96,12 @@
         <span>Analyse en cours...</span>
     </div>
 
-    <div style="text-align: center; margin-bottom: 2rem;">
+    <div style="text-align: center; margin-bottom: 2rem; animation: slideInDown 0.6s cubic-bezier(0.16, 1, 0.3, 1);">
         <h1>Analyse par {{ algo | upper }}</h1>
         <p style="margin: 0.5rem 0; color: var(--text-secondary);">Paramètre k = {{ k }} | Prétraitement CLAHE appliqué</p>
-        <a href="/galerie">← Retour à la galerie</a>
+        <div class="links">
+            <a href="/galerie">← Retour à la galerie</a>
+        </div>
     </div>
 
     <div class="images-container">
