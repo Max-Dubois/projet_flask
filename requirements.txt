@@ -1,0 +1,19 @@
+# pip install -r requirements.txt
+
+# --- Traitement d'images & Calcul ---
+numpy           # Manipulation des matrices de pixels
+opencv-python   # Traitement d'image (Luminosité, Morpho-math)
+scikit-image    # Algorithmes de segmentation avancés
+scipy           # Calcul scientifique pour l'analyse de formes
+
+# --- Intelligence Artificielle ---
+scikit-learn    # Clustering (K-Means) et métriques
+tensorflow      # Création de l'Auto-encodeur et du CNN
+# keras         # Inclus dans tensorflow (pour l'architecture des couches)
+
+# --- Interface Utilisateur (UI) ---
+streamlit       # Dashboard interactif et onglets Markdown
+pillow          # Gestion de l'affichage des formats d'images (PIL)
+
+# --- Gestion des données ---
+pandas          # Enregistrement et lecture des étiquettes (CSV)
