@@ -2,36 +2,35 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Galerie - Surveillance Maritime</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <div style="text-align: center;">
+    <div style="text-align: center; margin-bottom: 2rem;">
         <h1>⚓ Galerie de Surveillance</h1>
-        <a href="/">Retour Accueil</a>
+        <a href="/">← Retour à l'Accueil</a>
     </div>
 
-    <div class="gallery" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; padding: 20px;">
+    <div class="gallery">
         {% for img_name in images %}
-            <div class="image-card" style="border: 1px solid #ccc; padding: 10px; border-radius: 8px; width: 300px;">
-                <img src="{{ url_for('serve_image', filename=img_name) }}" style="width: 100%; border-radius: 4px;">
+            <div class="image-card">
+                <img src="{{ url_for('serve_image', filename=img_name) }}" alt="Image marine">
                 
-                <form action="/segmenter" method="POST" style="margin-top: 10px;">
+                <form action="/segmenter" method="POST">
                     <input type="hidden" name="image_path" value="{{ img_name }}">
                     
-                    <label>Algorithme :</label>
-                    <select name="algo" style="width: 100%; margin-bottom: 5px;">
+                    <label for="algo">Algorithme :</label>
+                    <select name="algo" id="algo" required>
                         <option value="kmeans">K-Means (Classique)</option>
                         <option value="dbscan" selected>DBSCAN (Hybride)</option>
                         <option value="cnn">Auto-encodeur (CNN)</option>
                     </select>
 
-                    <label>Intensité (k) :</label>
-                    <input type="number" name="k" value="5" min="2" max="20" style="width: 100%;">
+                    <label for="k">Intensité (k) :</label>
+                    <input type="number" name="k" id="k" value="5" min="2" max="20" required>
                     
-                    <button type="submit" style="width: 100%; margin-top: 10px; background: #3498db; color: white; border: none; padding: 8px; cursor: pointer;">
-                        Lancer la Segmentation
-                    </button>
+                    <button type="submit">Lancer la Segmentation</button>
                 </form>
             </div>
         {% endfor %}

@@ -2,25 +2,26 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Résultat Segmentation</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <div style="text-align: center; padding: 20px;">
+    <div style="text-align: center; margin-bottom: 2rem;">
         <h1>Analyse par {{ algo | upper }}</h1>
-        <p>Paramètre k = {{ k }} | Prétraitement CLAHE appliqué</p>
+        <p style="margin: 0.5rem 0; color: var(--text-secondary);">Paramètre k = {{ k }} | Prétraitement CLAHE appliqué</p>
         <a href="/galerie">← Retour à la galerie</a>
     </div>
 
-    <div style="display: flex; justify-content: center; gap: 40px; padding: 20px;">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 2rem;">
         <div class="box">
             <h3>Image Originale</h3>
-            <img src="{{ url_for('serve_image', filename=image_path) }}" style="max-width: 500px; border: 2px solid #ddd;">
+            <img src="{{ url_for('serve_image', filename=image_path) }}" alt="Image originale">
         </div>
 
         <div class="box">
             <h3>Résultat Segmenté</h3>
-            <img src="{{ url_for('process_image', algo=algo, image_path=image_path, k=k) }}" style="max-width: 500px; border: 2px solid #2ecc71;">
+            <img src="{{ url_for('process_image', algo=algo, image_path=image_path, k=k) }}" alt="Image segmentée">
         </div>
     </div>
 </body>

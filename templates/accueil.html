@@ -2,18 +2,18 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Traitement d'images - Flask</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-
-    <div style="text-align: center;">
+    <div style="text-align: center; margin-bottom: 3rem;">
         <h1>🌊 Traitement d'images</h1>
         <p class="subtitle">Segmentation & Classification de Navires et Objets Flottants</p>
         <p><strong>Projet Flask - DUBOIS Maxence | DECLOITRE Adam</strong></p>
-        <p class="links">
+        <div class="links">
             <a href="/galerie">Accéder à la Galerie</a>
-        </p>
+        </div>
     </div>
 
     <section>
@@ -32,7 +32,7 @@
         <h2>👥 Répartition du Travail</h2>
 
         <div class="pole">
-            <h3>🎨 Maxence Dubois (Moi) : Interfaces & Intelligence Métier</h3>
+            <h3>🎨 Maxence Dubois : Interfaces & Intelligence Métier</h3>
             <ul>
                 <li><strong>Développement UI (Streamlit) :</strong> Conception de l'interface de visualisation et documentation Markdown.</li>
                 <li><strong>Outil d'Étiquetage :</strong> Création du système interactif d'annotation des images.</li>
@@ -58,7 +58,7 @@
         <p><strong>Interface :</strong> Streamlit, HTML/CSS</p>
     </section>
 
-    <footer style="margin-top: 50px; text-align: center; font-size: 0.8em; color: gray;">
+    <footer>
         <p>Projet réalisé dans le cadre du DEUST WMI — ULCO Calais</p>
     </footer>
 
