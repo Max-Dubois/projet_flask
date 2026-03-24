@@ -56,6 +56,24 @@
 | Images avec bruits, objets multiples | DBSCAN | 3-6 |
 | Images complexes, haute précision requise | Auto-encodeur | 8-15 |
 
+## 🏷️ Annotation Manuelle et Transfert
+
+1. Ouvrir l'onglet **Annotation manuelle** depuis l'accueil ou la visualisation.
+2. Charger des **régions automatiques** (approche région) ou des labels déjà sauvegardés.
+3. Corriger les classes (`bateau_moteur`, `voilier`, `paddle`, `kayak`, `gonflable`, `inconnu`).
+4. Sauvegarder les labels.
+5. Utiliser **Appliquer et adapter échelle** pour transférer les annotations sur une autre image.
+
+## 🌍 Apprentissage Terre / Mer / Ciel
+
+1. Ouvrir `/annotation`.
+2. Cliquer **Basculer mode region/point** pour passer en mode `point`.
+3. Choisir la classe scene (`terre`, `mer`, `ciel`) puis cliquer sur l'image pour poser des sélections.
+4. Cliquer **Envoyer selections et apprendre**.
+5. Cliquer **Predire terre/mer/ciel** pour générer la carte automatique.
+
+Le modèle apprend en continu avec toutes les sélections sauvegardées.
+
 ## 📊 Interprétation des Résultats
 
 - **Masque de segmentation :** Les pixels de même couleur appartiennent au même cluster

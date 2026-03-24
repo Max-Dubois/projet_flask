@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Annotation manuelle</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .annot-layout { display: grid; grid-template-columns: 1fr 360px; gap: 24px; }
+        .canvas-wrap { position: relative; background: #0f172a; border: 1px solid rgba(255,255,255,.12); border-radius: 12px; padding: 12px; }
+        #annCanvas { width: 100%; border-radius: 8px; cursor: crosshair; background: #020617; }
+        .panel { background: #0f172a; border: 1px solid rgba(255,255,255,.12); border-radius: 12px; padding: 16px; }
+        .panel h3 { margin-top: 0; }
+        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .regions-list { max-height: 360px; overflow: auto; }
+        .regions-list li { border: 1px solid rgba(255,255,255,.1); border-radius: 8px; padding: 8px; margin-bottom: 8px; list-style: none; }
+        .hint { color: #94a3b8; font-size: .9rem; }
+        .mode-badge { display: inline-block; padding: 4px 8px; border-radius: 6px; background: rgba(56,189,248,.2); margin-left: 8px; }
+        #scenePreview { width: 100%; margin-top: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,.15); display: none; }
+        @media (max-width: 980px) { .annot-layout { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div style="text-align:center;margin-bottom:1.5rem;">
+        <h1>Annotation manuelle des données</h1>
+        <div class="links">
+            <a href="/">Accueil</a>
+            <a href="/galerie">Galerie</a>
+            <a href="/visualisation">Visualisation</a>
+        </div>
+    </div>
+
+    <div class="annot-layout">
+        <section class="canvas-wrap">
+            <div class="row">
+                <div>
+                    <label>Image</label>
+                    <select id="imageSelect">
+                        {% for img_name in images %}
+                        <option value="{{ img_name }}">{{ img_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label>Classe</label>
+                    <select id="classSelect">
+                        {% for cls in known_classes %}
+                        <option value="{{ cls }}">{{ cls }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <p class="hint">Mode region: cliquez-glissez pour dessiner. Mode apprentissage scene: cliquez pour poser des points terre/mer/ciel.<span id="modeBadge" class="mode-badge">mode: region</span></p>
+            <canvas id="annCanvas"></canvas>
+            <img id="scenePreview" alt="Prediction terre/mer/ciel">
+        </section>
+
+        <aside class="panel">
+            <h3>Actions</h3>
+            <button id="loadRegionsBtn">Charger regions auto</button>
+            <button id="loadLabelsBtn">Charger labels enregistres</button>
+            <button id="saveLabelsBtn">Sauvegarder labels</button>
+            <button id="clearBtn">Effacer toutes les regions</button>
+            <hr>
+            <label>Appliquer vers une autre image</label>
+            <select id="targetSelect">
+                {% for img_name in images %}
+                <option value="{{ img_name }}">{{ img_name }}</option>
+                {% endfor %}
+            </select>
+            <button id="applyBtn">Appliquer et adapter echelle</button>
+            <hr>
+            <h3>Apprentissage Terre/Mer/Ciel</h3>
+            <label>Classe scene</label>
+            <select id="sceneClassSelect">
+                <option value="terre">terre</option>
+                <option value="mer">mer</option>
+                <option value="ciel">ciel</option>
+            </select>
+            <button id="toggleModeBtn">Basculer mode region/point</button>
+            <button id="trainSceneBtn">Envoyer selections et apprendre</button>
+            <button id="predictSceneBtn">Predire terre/mer/ciel</button>
+            <button id="resetSceneBtn">Reset apprentissage scene</button>
+            <p id="sceneStats" class="hint"></p>
+            <p id="status" class="hint"></p>
+            <h3>Regions</h3>
+            <ul id="regionsList" class="regions-list"></ul>
+        </aside>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('annCanvas');
+        const ctx = canvas.getContext('2d');
+        const imageSelect = document.getElementById('imageSelect');
+        const classSelect = document.getElementById('classSelect');
+        const targetSelect = document.getElementById('targetSelect');
+        const sceneClassSelect = document.getElementById('sceneClassSelect');
+        const modeBadge = document.getElementById('modeBadge');
+        const scenePreview = document.getElementById('scenePreview');
+        const sceneStats = document.getElementById('sceneStats');
+        const statusEl = document.getElementById('status');
+        const regionsList = document.getElementById('regionsList');
+        let imageObj = new Image();
+        let regions = [];
+        let scenePoints = [];
+        let drawMode = 'region';
+        let drawing = false;
+        let startX = 0, startY = 0;
+        let currentW = 0, currentH = 0;
+        let imgNaturalW = 1, imgNaturalH = 1;
+
+        function setStatus(msg) { statusEl.textContent = msg; }
+
+        function resizeCanvasToImage() {
+            const maxWidth = Math.min(1000, canvas.parentElement.clientWidth - 24);
+            const ratio = imageObj.height / imageObj.width;
+            canvas.width = maxWidth;
+            canvas.height = Math.max(300, Math.round(maxWidth * ratio));
+            draw();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (imageObj.src) ctx.drawImage(imageObj, 0, 0, canvas.width, canvas.height);
+            ctx.lineWidth = 2;
+            regions.forEach(r => {
+                ctx.strokeStyle = '#38bdf8';
+                ctx.strokeRect(r.x, r.y, r.w, r.h);
+                ctx.fillStyle = 'rgba(56,189,248,0.18)';
+                ctx.fillRect(r.x, r.y, r.w, r.h);
+                ctx.fillStyle = '#f8fafc';
+                ctx.fillText(r.label, r.x + 4, Math.max(12, r.y - 4));
+            });
+            scenePoints.forEach(p => {
+                const color = p.label === 'mer' ? '#3b82f6' : (p.label === 'ciel' ? '#93c5fd' : '#22c55e');
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#f8fafc';
+                ctx.fillText(p.label, p.x + 6, p.y - 6);
+            });
+            if (drawing) {
+                ctx.strokeStyle = '#f59e0b';
+                ctx.strokeRect(startX, startY, currentW, currentH);
+            }
+            renderRegionList();
+        }
+
+        function renderRegionList() {
+            regionsList.innerHTML = '';
+            regions.forEach((r, idx) => {
+                const li = document.createElement('li');
+                li.innerHTML = `<strong>${r.label}</strong> x:${Math.round(r.x)} y:${Math.round(r.y)} w:${Math.round(r.w)} h:${Math.round(r.h)}<br>`;
+                const sel = document.createElement('select');
+                [...classSelect.options].forEach(opt => {
+                    const o = document.createElement('option');
+                    o.value = opt.value; o.textContent = opt.value;
+                    if (opt.value === r.label) o.selected = true;
+                    sel.appendChild(o);
+                });
+                sel.onchange = () => { regions[idx].label = sel.value; draw(); };
+                const del = document.createElement('button');
+                del.textContent = 'Supprimer';
+                del.onclick = () => { regions.splice(idx, 1); draw(); };
+                li.appendChild(sel);
+                li.appendChild(del);
+                regionsList.appendChild(li);
+            });
+        }
+
+        function toNaturalRegions() {
+            const sx = imgNaturalW / canvas.width;
+            const sy = imgNaturalH / canvas.height;
+            return regions.map(r => ({
+                id: r.id,
+                label: r.label,
+                x: Math.round(r.x * sx),
+                y: Math.round(r.y * sy),
+                w: Math.round(r.w * sx),
+                h: Math.round(r.h * sy),
+                score: r.score ?? 1.0
+            }));
+        }
+
+        function fromNaturalRegions(inputRegions) {
+            const sx = canvas.width / imgNaturalW;
+            const sy = canvas.height / imgNaturalH;
+            return inputRegions.map(r => ({
+                id: r.id || crypto.randomUUID(),
+                label: r.label || 'inconnu',
+                x: r.x * sx, y: r.y * sy, w: r.w * sx, h: r.h * sy,
+                score: r.score ?? 1.0
+            }));
+        }
+
+        function loadImage() {
+            const name = imageSelect.value;
+            imageObj = new Image();
+            imageObj.onload = () => {
+                imgNaturalW = imageObj.width;
+                imgNaturalH = imageObj.height;
+                resizeCanvasToImage();
+                regions = [];
+                scenePoints = [];
+                scenePreview.style.display = 'none';
+                setStatus(`Image chargee: ${name}`);
+                refreshSceneStats();
+            };
+            imageObj.src = `/image/${name}`;
+        }
+
+        canvas.addEventListener('mousedown', e => {
+            if (drawMode !== 'region') return;
+            const rect = canvas.getBoundingClientRect();
+            startX = e.clientX - rect.left;
+            startY = e.clientY - rect.top;
+            currentW = 0; currentH = 0;
+            drawing = true;
+        });
+        canvas.addEventListener('mousemove', e => {
+            if (drawMode !== 'region') return;
+            if (!drawing) return;
+            const rect = canvas.getBoundingClientRect();
+            currentW = (e.clientX - rect.left) - startX;
+            currentH = (e.clientY - rect.top) - startY;
+            draw();
+        });
+        canvas.addEventListener('mouseup', () => {
+            if (drawMode !== 'region') return;
+            if (!drawing) return;
+            drawing = false;
+            const x = currentW < 0 ? startX + currentW : startX;
+            const y = currentH < 0 ? startY + currentH : startY;
+            const w = Math.abs(currentW), h = Math.abs(currentH);
+            if (w > 8 && h > 8) {
+                regions.push({ id: crypto.randomUUID(), label: classSelect.value, x, y, w, h, score: 1.0 });
+            }
+            currentW = 0; currentH = 0;
+            draw();
+        });
+
+        canvas.addEventListener('click', e => {
+            if (drawMode !== 'point') return;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            scenePoints.push({ x, y, label: sceneClassSelect.value });
+            draw();
+        });
+
+        document.getElementById('loadRegionsBtn').onclick = async () => {
+            const res = await fetch(`/regions?image_path=${encodeURIComponent(imageSelect.value)}`);
+            const data = await res.json();
+            regions = fromNaturalRegions(data.regions || []);
+            draw();
+            setStatus(`Regions automatiques chargees: ${regions.length}`);
+        };
+
+        document.getElementById('loadLabelsBtn').onclick = async () => {
+            const res = await fetch(`/api/labels/${encodeURIComponent(imageSelect.value)}`);
+            const data = await res.json();
+            regions = fromNaturalRegions(data.regions || []);
+            draw();
+            setStatus(`Labels charges: ${regions.length}`);
+        };
+
+        document.getElementById('saveLabelsBtn').onclick = async () => {
+            const payload = {
+                image_name: imageSelect.value,
+                source_algo: 'manual',
+                regions: toNaturalRegions()
+            };
+            const res = await fetch('/api/labels/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            setStatus(data.ok ? `Sauvegarde ok (${data.saved_regions} regions)` : (data.error || 'Erreur sauvegarde'));
+        };
+
+        document.getElementById('applyBtn').onclick = async () => {
+            const payload = {
+                source_image: imageSelect.value,
+                target_image: targetSelect.value,
+                source_width: imgNaturalW,
+                source_height: imgNaturalH
+            };
+            const res = await fetch('/api/labels/apply', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            setStatus(data.ok ? `Labels appliques vers ${targetSelect.value}` : (data.error || 'Erreur application'));
+        };
+
+        document.getElementById('clearBtn').onclick = () => { regions = []; draw(); setStatus('Regions effacees'); };
+        document.getElementById('toggleModeBtn').onclick = () => {
+            drawMode = drawMode === 'region' ? 'point' : 'region';
+            modeBadge.textContent = `mode: ${drawMode}`;
+            setStatus(drawMode === 'point' ? 'Mode point actif: clique pour echantillonner terre/mer/ciel' : 'Mode region actif');
+        };
+
+        function scenePointsToNatural() {
+            const sx = imgNaturalW / canvas.width;
+            const sy = imgNaturalH / canvas.height;
+            return scenePoints.map(p => ({
+                x: Math.round(p.x * sx),
+                y: Math.round(p.y * sy),
+                label: p.label
+            }));
+        }
+
+        async function refreshSceneStats() {
+            const res = await fetch('/api/scene/stats');
+            const data = await res.json();
+            sceneStats.textContent = `Samples: ${data.total} | terre:${data.counts.terre} mer:${data.counts.mer} ciel:${data.counts.ciel}`;
+        }
+
+        document.getElementById('trainSceneBtn').onclick = async () => {
+            if (!scenePoints.length) {
+                setStatus('Ajoute d abord des points en mode point.');
+                return;
+            }
+            const payload = { image_name: imageSelect.value, points: scenePointsToNatural() };
+            const res = await fetch('/api/scene/add_samples', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (data.ok) {
+                setStatus(`Apprentissage mis a jour. +${data.added} points`);
+                scenePoints = [];
+                draw();
+                await refreshSceneStats();
+            } else {
+                setStatus(data.error || 'Erreur apprentissage');
+            }
+        };
+
+        document.getElementById('predictSceneBtn').onclick = async () => {
+            const url = `/api/scene/predict?image_path=${encodeURIComponent(imageSelect.value)}&_ts=${Date.now()}`;
+            const res = await fetch(url);
+            if (!res.ok) {
+                const err = await res.json();
+                setStatus(err.error || 'Prediction impossible');
+                return;
+            }
+            scenePreview.src = url;
+            scenePreview.style.display = 'block';
+            setStatus('Prediction terre/mer/ciel affichee');
+        };
+
+        document.getElementById('resetSceneBtn').onclick = async () => {
+            const res = await fetch('/api/scene/reset', { method: 'POST' });
+            const data = await res.json();
+            if (data.ok) {
+                setStatus('Apprentissage scene reinitialise');
+                await refreshSceneStats();
+            }
+        };
+        imageSelect.onchange = loadImage;
+        window.addEventListener('resize', () => { if (imageObj.src) resizeCanvasToImage(); });
+        loadImage();
+    </script>
+</body>
+</html>

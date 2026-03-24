@@ -100,3 +100,11 @@ Color-Invariant Features
 | Bruit Surface | Noise Level 8.2 | Noise Level 3.3 | -60% |
 | Petits Objets | Recall 65% | Recall 88% | +35% |
 | Variation Couleur | Consistance 72% | Consistance 90% | +25% |
+
+## ✅ Corrections ajoutées dans l'application
+
+- **Volume des données :** segmentation sur image redimensionnée puis remontée en pleine résolution via KNN.
+- **Luminosité :** correction CLAHE en espace LAB avant segmentation.
+- **Correction morphomathématique :** ouverture + fermeture pour nettoyer les masques segmentés.
+- **Correction des labels enregistrés :** interface d'annotation avec édition de classe, suppression de région et versionnage des enregistrements.
+- **Approche région :** endpoint de propositions de régions (`/regions`) pour initialiser l'annotation de cibles maritimes.

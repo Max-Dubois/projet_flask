@@ -18,6 +18,7 @@
     <div class="tabs-container">
         <div class="tabs-header">
             <button class="tab-button active" data-tab="donnees">📈 Données Étiquetées</button>
+            <button class="tab-button" data-tab="annotation">🏷️ Annotation manuelle</button>
             <button class="tab-button" data-tab="guide">📖 Guide d'Utilisation</button>
             <button class="tab-button" data-tab="verrous">🔧 Verrous & Corrections</button>
             <button class="tab-button" data-tab="statistiques">📊 Statistiques</button>
@@ -39,6 +40,10 @@
                     <div class="stat-card">
                         <h3>Objets Détectés</h3>
                         <p class="stat-number">{{ total_objects }}</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Labels manuels</h3>
+                        <p class="stat-number">{{ manual_labels_count }}</p>
                     </div>
                     <div class="stat-card">
                         <h3>Taux de Réussite</h3>
@@ -90,7 +95,49 @@
             </section>
         </div>
 
-        <!-- Onglet 2: Guide d'Utilisation -->
+        <!-- Onglet 2: Annotation -->
+        <div id="annotation" class="tab-content">
+            <section>
+                <h2>🏷️ Annotation manuelle & transfert</h2>
+                <p>Nombre total de régions annotées manuellement: <strong>{{ manual_regions_count }}</strong></p>
+                <p>Utilisez l'outil dédié pour créer, corriger et appliquer des labels sur une autre image.</p>
+                <p><a href="/annotation">Ouvrir l'interface d'annotation manuelle</a></p>
+
+                <div class="data-table-container">
+                    <h3>Historique des labels enregistrés</h3>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Image</th>
+                                <th>Source</th>
+                                <th>Régions</th>
+                                <th>Version</th>
+                                <th>Mise à jour</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if labels_history %}
+                                {% for item in labels_history %}
+                                    <tr>
+                                        <td>{{ item.image_name }}</td>
+                                        <td>{{ item.source_algo }}</td>
+                                        <td>{{ item.regions|length }}</td>
+                                        <td>{{ item.version }}</td>
+                                        <td>{{ item.updated_at }}</td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="5" style="text-align: center; color: var(--text-secondary);">Aucun label manuel enregistré</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <!-- Onglet 3: Guide d'Utilisation -->
         <div id="guide" class="tab-content">
             <section>
                 <h2>📖 Guide d'Utilisation</h2>
@@ -100,7 +147,7 @@
             </section>
         </div>
 
-        <!-- Onglet 3: Verrous & Corrections -->
+        <!-- Onglet 4: Verrous & Corrections -->
         <div id="verrous" class="tab-content">
             <section>
                 <h2>🔧 Verrous & Corrections</h2>
@@ -110,7 +157,7 @@
             </section>
         </div>
 
-        <!-- Onglet 4: Statistiques -->
+        <!-- Onglet 5: Statistiques -->
         <div id="statistiques" class="tab-content">
             <section>
                 <h2>📊 Statistiques Globales</h2>
