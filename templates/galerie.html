@@ -2,42 +2,39 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Galerie d'images</title>
+    <title>Galerie - Surveillance Maritime</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
     <div style="text-align: center;">
-        <h1>Projet Flask - DUBOIS Maxence | DECLOITRE Adam</h1>
-        <p class="links">
-            <a href="/">Accueil</a>
-        </p>
+        <h1>⚓ Galerie de Surveillance</h1>
+        <a href="/">Retour Accueil</a>
     </div>
 
-    <div class="gallery">
+    <div class="gallery" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; padding: 20px;">
         {% for img_name in images %}
-            <div class="image-card">
+            <div class="image-card" style="border: 1px solid #ccc; padding: 10px; border-radius: 8px; width: 300px;">
+                <img src="{{ url_for('serve_image', filename=img_name) }}" style="width: 100%; border-radius: 4px;">
                 
-                <!-- Image -->
-                <img src="{{ url_for('serve_image', filename=img_name) }}" alt="Image">
-
-                <div class="kmeans-controls">
+                <form action="/segmenter" method="POST" style="margin-top: 10px;">
+                    <input type="hidden" name="image_path" value="{{ img_name }}">
                     
-                    <!-- DBSCAN -->
-                    <form action="/dbscan" method="POST" style="margin-top: 10px;">
-                        <input type="hidden" name="image_path" value="{{ img_name }}">
-                        
-                        <label>Clusters (k):</label>
-                        <input type="number" name="k" value="5" min="1" max="100">
-                        
-                        <button type="submit" style="display: block; width: 100%; margin-top: 5px;">
-                            Segmentation DBScan
-                        </button>
-                    </form>
+                    <label>Algorithme :</label>
+                    <select name="algo" style="width: 100%; margin-bottom: 5px;">
+                        <option value="kmeans">K-Means (Classique)</option>
+                        <option value="dbscan" selected>DBSCAN (Hybride)</option>
+                        <option value="cnn">Auto-encodeur (CNN)</option>
+                    </select>
 
-                </div>
+                    <label>Intensité (k) :</label>
+                    <input type="number" name="k" value="5" min="2" max="20" style="width: 100%;">
+                    
+                    <button type="submit" style="width: 100%; margin-top: 10px; background: #3498db; color: white; border: none; padding: 8px; cursor: pointer;">
+                        Lancer la Segmentation
+                    </button>
+                </form>
             </div>
         {% endfor %}
     </div>
-
 </body>
 </html>
