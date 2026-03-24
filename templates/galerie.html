@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Sélecteur de Répertoire</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div style="text-align: center;">
+        <h1>Projet Flask - DUBOIS Maxence | DECLOITRE Adam</h1>
+        <p class="links">
+            <a href="/">Accueil</a>
+        </p>
+    </div>
+
+    <div style="text-align: center; margin-bottom: 20px;">
+        <form method="POST">
+            <button type="submit">Sélectionner un répertoire sur mon ordinateur</button>
+        </form>
+    </div>
+
+    {% if folder_path %}
+        <div class="gallery">
+            {% for img_name in images %}
+                {% set full_path = folder_path + '/' + img_name %}
+                <div class="image-card">
+                    <img src="{{ url_for('serve_image', full_path=full_path) }}" alt="Image">
+                    
+                    <div class="kmeans-controls">
+                        <!-- <form action="/kmeans" method="POST">
+                            <input type="hidden" name="image_path" value="{{ full_path }}">
+                            <label for="k">Clusters (k):</label>
+                            <input type="number" name="k" value="5" min="1" max="100">
+                            <button type="submit" style="display: block; width: 100%; margin-top: 5px;">
+                                Segmenter l'image
+                            </button>
+                        </form>
+                        <form action="/hierarchique" method="POST" style="margin-top: 10px;">
+                            <input type="hidden" name="image_path" value="{{ full_path }}">
+                            <label for="k_hierarchical">Clusters (k):</label>
+                            <input type="number" name="k" value="5" min="1" max="100">
+                            <button type="submit" style="display: block; width: 100%; margin-top: 5px;">
+                                Segmentation Hiérarchique
+                            </button>
+                        </form> -->
+                        <form action="/dbscan" method="POST" style="margin-top: 10px;">
+                            <input type="hidden" name="image_path" value="{{ full_path }}">
+                            <label for="k_dbscan">Clusters (k):</label>
+                            <input type="number" name="k" value="5" min="1" max="100">
+                            <button type="submit" style="display: block; width: 100%; margin-top: 5px;">
+                                Segmentation DBScan
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</body>
+</html>
