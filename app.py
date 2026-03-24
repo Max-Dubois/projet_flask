@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, send_from_directory, send_file
+from markupsafe import Markup
 import os
 import cv2
 import numpy as np
@@ -7,6 +8,7 @@ import json
 from datetime import datetime
 from sklearn.cluster import DBSCAN
 from sklearn.neighbors import KNeighborsClassifier
+import markdown
 
 app = Flask(__name__)
 
@@ -194,6 +196,22 @@ def visualisation():
     history = load_processing_data()
     stats = get_statistics()
     
+    # Charger le contenu des onglets markdown
+    guide_content = ""
+    verrous_content = ""
+    
+    try:
+        with open('guide.md', 'r', encoding='utf-8') as f:
+            guide_content = Markup(markdown.markdown(f.read()))
+    except FileNotFoundError:
+        guide_content = "<p>Guide non disponible</p>"
+    
+    try:
+        with open('verrous.md', 'r', encoding='utf-8') as f:
+            verrous_content = Markup(markdown.markdown(f.read()))
+    except FileNotFoundError:
+        verrous_content = "<p>Documentation des verrous non disponible</p>"
+    
     return render_template('visualisation.html',
         processing_history=history,
         total_images=stats['total_images'],
@@ -207,7 +225,9 @@ def visualisation():
         avg_objects_per_image=stats['avg_objects_per_image'],
         kmeans_percent=stats['kmeans_percent'],
         dbscan_percent=stats['dbscan_percent'],
-        cnn_percent=stats['cnn_percent']
+        cnn_percent=stats['cnn_percent'],
+        guide_content=guide_content,
+        verrous_content=verrous_content
     )
 
 if __name__ == '__main__':
