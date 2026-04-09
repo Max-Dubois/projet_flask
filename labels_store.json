@@ -36,11 +36,48 @@
         "gonflable",
         "inconnu"
       ],
-      "regions": [],
+      "regions": [
+        {
+          "id": "6f69c82f-5874-41d6-a0f5-c637d5a81c51",
+          "label": "bateau_moteur",
+          "x": 3975,
+          "y": 693,
+          "w": 187,
+          "h": 80,
+          "score": 1.0
+        },
+        {
+          "id": "ad0e1de7-a6a9-4724-b810-f9c7335a8a5e",
+          "label": "voilier",
+          "x": 4191,
+          "y": 926,
+          "w": 215,
+          "h": 67,
+          "score": 1.0
+        },
+        {
+          "id": "b78c3fff-4ef6-4a21-9e9e-9d7bfe4bff3b",
+          "label": "paddle",
+          "x": 6244,
+          "y": 839,
+          "w": 158,
+          "h": 87,
+          "score": 1.0
+        },
+        {
+          "id": "a5b51590-7171-4e47-b27b-26e48644eafe",
+          "label": "kayak",
+          "x": 6704,
+          "y": 620,
+          "w": 158,
+          "h": 80,
+          "score": 1.0
+        }
+      ],
       "source_algo": "manual",
       "notes": "",
-      "updated_at": "2026-03-24 16:20:19",
-      "version": 4
+      "updated_at": "2026-04-08 19:30:23",
+      "version": 6
     }
   ]
 }
