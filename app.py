@@ -205,6 +205,91 @@ def scale_regions(regions, sx, sy):
     return scaled
 
 
+OBJECT_MODEL_FILE = 'object_model.json'
+
+
+def save_object_model(payload):
+    save_json_file(OBJECT_MODEL_FILE, payload)
+
+
+def load_object_model():
+    return load_json_file(OBJECT_MODEL_FILE, {"samples": [], "classes": KNOWN_CLASSES})
+
+
+def generate_region_proposals(rgb):
+    gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
+    blur = cv2.GaussianBlur(gray, (5, 5), 0)
+    edges = cv2.Canny(blur, 60, 160)
+    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    h, w = gray.shape
+    proposals = []
+    for cnt in contours:
+        area = cv2.contourArea(cnt)
+        if area < 120 or area > 0.25 * h * w:
+            continue
+        x, y, bw, bh = cv2.boundingRect(cnt)
+        ratio = bw / float(max(1, bh))
+        if ratio > 3.0:
+            label = "bateau_moteur"
+        elif ratio > 1.6:
+            label = "voilier"
+        elif area < 600:
+            label = "paddle"
+        elif area < 1500:
+            label = "kayak"
+        else:
+            label = "gonflable"
+        proposals.append({
+            "id": str(uuid.uuid4()),
+            "x": int(x),
+            "y": int(y),
+            "w": int(bw),
+            "h": int(bh),
+            "label": label,
+            "score": round(float(min(0.99, 0.35 + area / (h * w))), 3)
+        })
+    proposals.sort(key=lambda p: p["score"], reverse=True)
+    return proposals
+
+
+def extract_region_features(rgb, region):
+    x, y, w, h = region.get("x", 0), region.get("y", 0), region.get("w", 0), region.get("h", 0)
+    patch = rgb[y:y+h, x:x+w]
+    if patch.size == 0:
+        return None
+    patch = cv2.resize(patch, (32, 32), interpolation=cv2.INTER_AREA)
+    hist = cv2.calcHist([patch], [0, 1, 2], None, [8, 8, 8], [0, 256, 0, 256, 0, 256]).flatten()
+    hist = cv2.normalize(hist, hist).flatten()
+    mean = np.mean(patch.reshape(-1, 3), axis=0) / 255.0
+    return np.concatenate([mean, hist]).astype(np.float32)
+
+
+def build_object_training_samples():
+    store = load_labels_store()
+    samples = []
+    for record in store.get("records", []):
+        image_name = record.get("image_name")
+        path = os.path.join(IMAGE_FOLDER, image_name)
+        img = cv2.imread(path)
+        if img is None:
+            continue
+        rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        for region in record.get("regions", []):
+            label = region.get("label", "inconnu")
+            if label not in KNOWN_CLASSES or label == "inconnu":
+                continue
+            feat = extract_region_features(rgb, region)
+            if feat is None:
+                continue
+            samples.append({
+                "image_name": image_name,
+                "region_id": region.get("id", str(uuid.uuid4())),
+                "label": label,
+                "features": feat.tolist()
+            })
+    return samples
+
+
 def load_scene_samples():
     payload = load_json_file(SCENE_SAMPLES_FILE, {"samples": []})
     if "samples" not in payload:
@@ -301,39 +386,121 @@ def regions():
     if img is None:
         return jsonify({"error": "image introuvable"}), 404
     rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
-    blur = cv2.GaussianBlur(gray, (5, 5), 0)
-    edges = cv2.Canny(blur, 60, 160)
-    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    h, w = gray.shape
-    proposals = []
-    for cnt in contours:
-        area = cv2.contourArea(cnt)
-        if area < 120 or area > 0.25 * h * w:
-            continue
-        x, y, bw, bh = cv2.boundingRect(cnt)
-        ratio = bw / float(max(1, bh))
-        if ratio > 3.0:
-            label = "bateau_moteur"
-        elif ratio > 1.6:
-            label = "voilier"
-        elif area < 600:
-            label = "paddle"
-        elif area < 1500:
-            label = "kayak"
-        else:
-            label = "gonflable"
-        proposals.append({
-            "id": str(uuid.uuid4()),
-            "x": int(x),
-            "y": int(y),
-            "w": int(bw),
-            "h": int(bh),
-            "label": label,
-            "score": round(float(min(0.99, 0.35 + area / (h * w))), 3)
-        })
-    proposals.sort(key=lambda p: p["score"], reverse=True)
+    proposals = generate_region_proposals(rgb)
     return jsonify({"image_name": filename, "regions": proposals[:30]})
+
+
+@app.route('/api/object/train', methods=['POST'])
+def train_object_model():
+    samples = build_object_training_samples()
+    if len(samples) < 5:
+        return jsonify({"error": "Pas assez d'exemples annotes pour entrainer. Ajoute au moins 5 regions."}), 400
+    model = {
+        "samples": samples,
+        "classes": KNOWN_CLASSES,
+        "trained_at": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        "sample_count": len(samples)
+    }
+    save_object_model(model)
+    counts = {}
+    for s in samples:
+        counts[s["label"]] = counts.get(s["label"], 0) + 1
+    return jsonify({"ok": True, "trained": True, "total_samples": len(samples), "counts": counts})
+
+
+@app.route('/api/object/stats')
+def object_stats():
+    model = load_object_model()
+    counts = {cls: 0 for cls in KNOWN_CLASSES}
+    for s in model.get("samples", []):
+        if s.get("label") in counts:
+            counts[s["label"]] += 1
+    return jsonify({"total_samples": len(model.get("samples", [])), "counts": counts, "classes": KNOWN_CLASSES})
+
+
+@app.route('/api/object/predict')
+def predict_objects():
+    image_name = request.args.get("image_path", "")
+    if not image_name:
+        return jsonify({"error": "image_path manquant"}), 400
+    model = load_object_model()
+    samples = model.get("samples", [])
+    if len(samples) < 5:
+        return jsonify({"error": "Modele objets non entraine. Envoie d'abord des selections et entraine."}), 400
+    image_path = os.path.join(IMAGE_FOLDER, image_name)
+    img = cv2.imread(image_path)
+    if img is None:
+        return jsonify({"error": "image introuvable"}), 404
+    rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    X = np.array([s["features"] for s in samples], dtype=np.float32)
+    y = np.array([s["label"] for s in samples])
+    n_neighbors = max(1, min(7, len(samples)))
+    knn = KNeighborsClassifier(n_neighbors=n_neighbors, weights='distance')
+    knn.fit(X, y)
+    proposals = generate_region_proposals(rgb)
+    predictions = []
+    for proposal in proposals:
+        feat = extract_region_features(rgb, proposal)
+        if feat is None:
+            continue
+        label = knn.predict(feat.reshape(1, -1))[0]
+        predictions.append({
+            "id": proposal["id"],
+            "x": proposal["x"],
+            "y": proposal["y"],
+            "w": proposal["w"],
+            "h": proposal["h"],
+            "label": label,
+            "score": float(round(np.max(knn.predict_proba(feat.reshape(1, -1))), 3)) if hasattr(knn, 'predict_proba') else proposal.get("score", 0.0)
+        })
+    return jsonify({"image_name": image_name, "predictions": predictions[:30]})
+
+
+@app.route('/api/object/predict/image')
+def predict_objects_image():
+    image_name = request.args.get("image_path", "")
+    if not image_name:
+        return jsonify({"error": "image_path manquant"}), 400
+    model = load_object_model()
+    samples = model.get("samples", [])
+    if len(samples) < 5:
+        return jsonify({"error": "Modele objets non entraine. Envoie d'abord des selections et entraine."}), 400
+    image_path = os.path.join(IMAGE_FOLDER, image_name)
+    img = cv2.imread(image_path)
+    if img is None:
+        return jsonify({"error": "image introuvable"}), 404
+    rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    X = np.array([s["features"] for s in samples], dtype=np.float32)
+    y = np.array([s["label"] for s in samples])
+    n_neighbors = max(1, min(7, len(samples)))
+    knn = KNeighborsClassifier(n_neighbors=n_neighbors, weights='distance')
+    knn.fit(X, y)
+    predictions = []
+    proposals = generate_region_proposals(rgb)
+    for proposal in proposals:
+        feat = extract_region_features(rgb, proposal)
+        if feat is None:
+            continue
+        label = knn.predict(feat.reshape(1, -1))[0]
+        score = float(round(np.max(knn.predict_proba(feat.reshape(1, -1))), 3)) if hasattr(knn, 'predict_proba') else proposal.get("score", 0.0)
+        predictions.append({"id": proposal["id"], "x": proposal["x"], "y": proposal["y"], "w": proposal["w"], "h": proposal["h"], "label": label, "score": score})
+    
+    # Si aucune prediction, retourner une image avec un message
+    if not predictions:
+        overlay = img.copy()
+        # Ajouter un message texte sur l'image
+        h, w = overlay.shape[:2]
+        cv2.putText(overlay, "Aucun objet détecté", (w//2 - 150, h//2), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 255), 3)
+        cv2.putText(overlay, "Aucun objet détecté", (w//2 - 150, h//2), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 2)
+        _, buffer = cv2.imencode('.jpg', overlay)
+        return send_file(io.BytesIO(buffer), mimetype='image/jpeg')
+    
+    overlay = img.copy()
+    for pred in predictions[:30]:
+        cv2.rectangle(overlay, (pred["x"], pred["y"]), (pred["x"] + pred["w"], pred["y"] + pred["h"]), (0, 255, 0), 2)
+        cv2.putText(overlay, pred["label"], (pred["x"], max(pred["y"] - 8, 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+    _, buffer = cv2.imencode('.jpg', overlay)
+    return send_file(io.BytesIO(buffer), mimetype='image/jpeg')
 
 
 @app.route('/api/labels/<image_name>')

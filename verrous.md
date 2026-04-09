@@ -38,23 +38,24 @@ Multi-scale Processing
 
 **Recommandation :** Accroître la résolution source ou utiliser un modèle CNN spécialisé
 
-## 🟠 Verrou 3 : Annotation des Objets
-**Statut : PARTIELLEMENT RÉSOLU**
+## � Verrou 3 : Annotation des Objets
+**Statut : RÉSOLU**
 
-**Problème :** On peut annoter des éléments comme bateau moteur, kayak, etc., mais on ne peut pas envoyer nos sélections pour apprentissage automatique.
+**Problème :** On peut annoter des éléments comme bateau moteur, kayak, etc., mais l'envoi des sélections pour apprentissage et la prédiction sur d'autres images n'était pas actif.
 
-**Impact :** Les annotations restent locales et ne permettent pas de renforcer le modèle de détection automatique.
+**Impact :** Les annotations restaient locales et ne permettaient pas d'améliorer la détection automatique sur d'autres images.
 
 **Solution implémentée :**
 ```python
-- Interface d'annotation fonctionnelle pour marquer les objets
-- Préparation des sélections pour sauvegarde
-- Flux d'export partiel prêt à être connecté à un backend d'apprentissage
+- Sauvegarde des régions annotées dans labels_store.json
+- Entraînement d'un modèle objet simple à partir des régions sauvegardées
+- Prédiction sur d'autres images via des propositions de régions et KNN
+- Endpoint visuel de prédiction d'objets sur l'image sélectionnée
 ```
 
-**Résultats :** ⚠️ L'annotation est possible, mais l'envoi des sélections pour apprentissage n'est pas encore activé
+**Résultats :** ✅ Envoi des sélections et apprentissage d'un modèle objet fonctionnels
 
-**Recommandation :** Intégrer le backend d'entraînement ou un endpoint d'upload pour exploiter les annotations utilisateurs
+**Recommandation :** Continuer à enrichir le jeu de données avec des régions réelles pour améliorer la détection.
 
 ## 🔵 Verrou 4 : Temps de Segmentations
 **Statut : RÉSOLU**
@@ -94,7 +95,7 @@ Multi-scale Processing
 |--------|-------|-------|------|
 | Luminosité | Contraste 0.45 | Contraste 0.63 | +40% |
 | Petits Objets | Recall 65% | Recall 88% | +35% |
-| Annotation d'objets | Annotation possible | Envoi vers apprentissage non activé | ⚠️ |
+| Annotation d'objets | Annotation possible | Envoi et apprentissage activés | ✅ |
 | Temps de segmentation | Attente longue | Temps stabilisé | ✅ |
 | Attente segmentation | Pas de feedback | Bandeau "Analyse en cours" | ✅ |
 

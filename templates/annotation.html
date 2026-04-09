@@ -53,6 +53,7 @@
             <p class="hint">Mode region: cliquez-glissez pour dessiner. Mode apprentissage scene: cliquez pour poser des points terre/mer/ciel.<span id="modeBadge" class="mode-badge">mode: region</span></p>
             <canvas id="annCanvas"></canvas>
             <img id="scenePreview" alt="Prediction terre/mer/ciel">
+            <img id="objectPreview" alt="Prediction objets" style="display:none; width:100%; margin-top:12px; border-radius:8px; border:1px solid rgba(255,255,255,.15);" />
         </section>
 
         <aside class="panel">
@@ -60,7 +61,9 @@
             <button id="loadRegionsBtn">Charger regions auto</button>
             <button id="loadLabelsBtn">Charger labels enregistres</button>
             <button id="saveLabelsBtn">Sauvegarder labels</button>
+            <button id="trainObjectsBtn">Envoyer regions objets et apprendre</button>
             <button id="clearBtn">Effacer toutes les regions</button>
+            <div id="objectStats" class="hint"></div>
             <hr>
             <label>Appliquer vers une autre image</label>
             <select id="targetSelect">
@@ -69,6 +72,7 @@
                 {% endfor %}
             </select>
             <button id="applyBtn">Appliquer et adapter echelle</button>
+            <button id="predictObjectsBtn">Predire objets sur cette image</button>
             <hr>
             <h3>Apprentissage Terre/Mer/Ciel</h3>
             <label>Classe scene</label>
@@ -206,6 +210,7 @@
                 scenePreview.style.display = 'none';
                 setStatus(`Image chargee: ${name}`);
                 refreshSceneStats();
+                refreshObjectStats();
             };
             imageObj.src = `/image/${name}`;
         }
@@ -278,6 +283,29 @@
             });
             const data = await res.json();
             setStatus(data.ok ? `Sauvegarde ok (${data.saved_regions} regions)` : (data.error || 'Erreur sauvegarde'));
+            await refreshObjectStats();
+        };
+
+        document.getElementById('trainObjectsBtn').onclick = async () => {
+            const payload = { image_name: imageSelect.value, regions: toNaturalRegions() };
+            const saveRes = await fetch('/api/labels/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const saveData = await saveRes.json();
+            if (!saveData.ok) {
+                setStatus(saveData.error || 'Erreur sauvegarde');
+                return;
+            }
+            const trainRes = await fetch('/api/object/train', { method: 'POST' });
+            const trainData = await trainRes.json();
+            if (trainData.ok) {
+                setStatus(`Modele objet entraine. ${trainData.total_samples} selections en memoire.`);
+                await refreshObjectStats();
+            } else {
+                setStatus(trainData.error || 'Erreur entrainement objets');
+            }
         };
 
         document.getElementById('applyBtn').onclick = async () => {
@@ -295,6 +323,30 @@
             const data = await res.json();
             setStatus(data.ok ? `Labels appliques vers ${targetSelect.value}` : (data.error || 'Erreur application'));
         };
+
+        document.getElementById('predictObjectsBtn').onclick = async () => {
+            // Masquer les regions actuelles pour la prediction
+            regions = [];
+            draw();
+            
+            const url = `/api/object/predict/image?image_path=${encodeURIComponent(imageSelect.value)}&_ts=${Date.now()}`;
+            const res = await fetch(url);
+            if (!res.ok) {
+                const err = await res.json();
+                setStatus(err.error || 'Prediction objet impossible');
+                objectPreview.style.display = 'none';
+                return;
+            }
+            objectPreview.src = url;
+            objectPreview.style.display = 'block';
+            setStatus('Prediction objet affichee');
+        };
+
+        async function refreshObjectStats() {
+            const res = await fetch('/api/object/stats');
+            const data = await res.json();
+            document.getElementById('objectStats').textContent = `Modele objets: ${data.total_samples} selections | ${Object.entries(data.counts).map(([cls, count]) => `${cls}:${count}`).join(' | ')}`;
+        }
 
         document.getElementById('clearBtn').onclick = () => { regions = []; draw(); setStatus('Regions effacees'); };
         document.getElementById('toggleModeBtn').onclick = () => {

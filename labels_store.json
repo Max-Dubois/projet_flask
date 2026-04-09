@@ -38,46 +38,99 @@
       ],
       "regions": [
         {
-          "id": "6f69c82f-5874-41d6-a0f5-c637d5a81c51",
-          "label": "bateau_moteur",
-          "x": 3975,
-          "y": 693,
-          "w": 187,
-          "h": 80,
-          "score": 1.0
-        },
-        {
-          "id": "ad0e1de7-a6a9-4724-b810-f9c7335a8a5e",
-          "label": "voilier",
+          "id": "4b377574-b604-4638-8350-034945d11f9d",
+          "label": "gonflable",
           "x": 4191,
-          "y": 926,
+          "y": 915,
           "w": 215,
-          "h": 67,
+          "h": 93,
           "score": 1.0
         },
         {
-          "id": "b78c3fff-4ef6-4a21-9e9e-9d7bfe4bff3b",
-          "label": "paddle",
-          "x": 6244,
-          "y": 839,
-          "w": 158,
+          "id": "5af2568c-1d8c-4d71-bea7-8e29d8b6dc0f",
+          "label": "gonflable",
+          "x": 6172,
+          "y": 842,
+          "w": 230,
           "h": 87,
           "score": 1.0
         },
         {
-          "id": "a5b51590-7171-4e47-b27b-26e48644eafe",
-          "label": "kayak",
-          "x": 6704,
-          "y": 620,
+          "id": "56cc2d03-6c01-4617-b3af-2a6af780bdef",
+          "label": "voilier",
+          "x": 4018,
+          "y": 689,
           "w": 158,
-          "h": 80,
+          "h": 67,
+          "score": 1.0
+        },
+        {
+          "id": "06fdd3da-06e7-4523-81b1-25118af95f6c",
+          "label": "bateau_moteur",
+          "x": 6704,
+          "y": 622,
+          "w": 172,
+          "h": 67,
           "score": 1.0
         }
       ],
       "source_algo": "manual",
       "notes": "",
-      "updated_at": "2026-04-08 19:30:23",
-      "version": 6
+      "updated_at": "2026-04-09 09:25:32",
+      "version": 8
+    },
+    {
+      "image_name": "MFDC2701.JPG",
+      "classes": [
+        "bateau_moteur",
+        "voilier",
+        "paddle",
+        "kayak",
+        "gonflable",
+        "inconnu"
+      ],
+      "regions": [
+        {
+          "id": "4b377574-b604-4638-8350-034945d11f9d",
+          "label": "gonflable",
+          "x": 4191,
+          "y": 915,
+          "w": 215,
+          "h": 93,
+          "score": 1.0
+        },
+        {
+          "id": "5af2568c-1d8c-4d71-bea7-8e29d8b6dc0f",
+          "label": "gonflable",
+          "x": 6172,
+          "y": 842,
+          "w": 230,
+          "h": 87,
+          "score": 1.0
+        },
+        {
+          "id": "56cc2d03-6c01-4617-b3af-2a6af780bdef",
+          "label": "voilier",
+          "x": 4018,
+          "y": 689,
+          "w": 158,
+          "h": 67,
+          "score": 1.0
+        },
+        {
+          "id": "06fdd3da-06e7-4523-81b1-25118af95f6c",
+          "label": "bateau_moteur",
+          "x": 6704,
+          "y": 622,
+          "w": 172,
+          "h": 67,
+          "score": 1.0
+        }
+      ],
+      "source_algo": "transfer:manual",
+      "notes": "Copie depuis MFDC2700.JPG",
+      "updated_at": "2026-04-09 09:37:45",
+      "version": 1
     }
   ]
 }
