@@ -348,7 +348,19 @@
             document.getElementById('objectStats').textContent = `Modele objets: ${data.total_samples} selections | ${Object.entries(data.counts).map(([cls, count]) => `${cls}:${count}`).join(' | ')}`;
         }
 
-        document.getElementById('clearBtn').onclick = () => { regions = []; draw(); setStatus('Regions effacees'); };
+        document.getElementById('clearBtn').onclick = async () => {
+            if (!confirm('Voulez-vous vraiment reinitialiser completement l apprentissage objet ?')) return;
+            const res = await fetch('/api/object/reset', { method: 'POST' });
+            const data = await res.json();
+            if (data.ok) {
+                regions = [];
+                draw();
+                setStatus('Apprentissage objet reinitialise et regions effacees.');
+                await refreshObjectStats();
+            } else {
+                setStatus(data.error || 'Erreur reinitialisation objets');
+            }
+        };
         document.getElementById('toggleModeBtn').onclick = () => {
             drawMode = drawMode === 'region' ? 'point' : 'region';
             modeBadge.textContent = `mode: ${drawMode}`;

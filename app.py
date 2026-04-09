@@ -418,6 +418,13 @@ def object_stats():
     return jsonify({"total_samples": len(model.get("samples", [])), "counts": counts, "classes": KNOWN_CLASSES})
 
 
+@app.route('/api/object/reset', methods=['POST'])
+def reset_object_model():
+    save_labels_store({"records": []})
+    save_object_model({"samples": [], "classes": KNOWN_CLASSES})
+    return jsonify({"ok": True, "message": "Apprentissage objets reinitialise."})
+
+
 @app.route('/api/object/predict')
 def predict_objects():
     image_name = request.args.get("image_path", "")
